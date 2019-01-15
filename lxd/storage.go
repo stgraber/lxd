@@ -411,6 +411,12 @@ func storagePoolVolumeAttachInit(s *state.State, poolName string, volumeName str
 		return st, nil
 	}
 
+	// Check if shiftfs
+	if s.OS.Shiftfs {
+		// FIXME: We should add logic to deal with existing volumes that are shifted
+		return st, nil
+	}
+
 	// get last idmapset
 	var lastIdmap *idmap.IdmapSet
 	if poolVolumePut.Config["volatile.idmap.last"] != "" {
@@ -509,7 +515,7 @@ func storagePoolVolumeAttachInit(s *state.State, poolName string, volumeName str
 		}
 
 		// shift rootfs
-		if nextIdmap != nil {
+		if nextIdmap != nil && !s.OS.Shiftfs {
 			var err error
 
 			if st.GetStorageType() == storageTypeZfs {

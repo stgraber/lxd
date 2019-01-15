@@ -1149,6 +1149,18 @@ func (c *containerLXC) initLXC(config bool) error {
 	}
 
 	// Setup the hooks
+	err = lxcSetConfigItem(cc, "lxc.hook.version", "1")
+	if err != nil {
+		return err
+	}
+
+	if !c.IsPrivileged() {
+		err = lxcSetConfigItem(cc, "lxc.hook.pre-mount", fmt.Sprintf("/bin/mount -t shiftfs %s %s", c.RootfsPath(), c.RootfsPath()))
+		if err != nil {
+			return err
+		}
+	}
+
 	err = lxcSetConfigItem(cc, "lxc.hook.pre-start", fmt.Sprintf("%s callhook %s %d start", c.state.OS.ExecPath, shared.VarPath(""), c.id))
 	if err != nil {
 		return err
@@ -1992,7 +2004,7 @@ func (c *containerLXC) startCommon() (string, error) {
 		jsonIdmap = "[]"
 	}
 
-	if !reflect.DeepEqual(idmap, lastIdmap) {
+	if !reflect.DeepEqual(idmap, lastIdmap) && !c.state.OS.Shiftfs {
 		if shared.IsTrue(c.expandedConfig["security.protection.shift"]) {
 			return "", fmt.Errorf("Container is protected against filesystem shifting")
 		}
@@ -2601,6 +2613,14 @@ func (c *containerLXC) OnStart() error {
 		return err
 	}
 
+	// Setup host side shiftfs
+	if c.state.OS.Shiftfs && !c.IsPrivileged() {
+		err := syscall.Mount(c.RootfsPath(), c.RootfsPath(), "shiftfs", 0, "mark")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Load the container AppArmor profile
 	err = AALoadProfile(c)
 	if err != nil {
@@ -2879,6 +2899,14 @@ func (c *containerLXC) OnStop(target string) error {
 
 	// Make sure we can't call go-lxc functions by mistake
 	c.fromHook = true
+
+	// Unmount shiftfs
+	if c.state.OS.Shiftfs && !c.IsPrivileged() {
+		err := syscall.Unmount(c.RootfsPath(), syscall.MNT_DETACH)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Stop the storage for this container
 	_, err := c.StorageStop()
@@ -5071,7 +5099,7 @@ func (c *containerLXC) Export(w io.Writer, properties map[string]string) error {
 		return err
 	}
 
-	if idmap != nil {
+	if idmap != nil && !c.state.OS.Shiftfs {
 		if !c.IsSnapshot() && shared.IsTrue(c.expandedConfig["security.protection.shift"]) {
 			return fmt.Errorf("Container is protected against filesystem shifting")
 		}
@@ -5392,7 +5420,7 @@ func (c *containerLXC) Migrate(args *CriuMigrationArgs) error {
 		 * opened by the process after it is in its user
 		 * namespace.
 		 */
-		if !c.IsPrivileged() {
+		if !c.IsPrivileged() && !c.state.OS.Shiftfs {
 			idmapset, err := c.IdmapSet()
 			if err != nil {
 				return err

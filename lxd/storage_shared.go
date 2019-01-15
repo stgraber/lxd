@@ -37,6 +37,10 @@ func (s *storageShared) GetStorageTypeVersion() string {
 }
 
 func (s *storageShared) shiftRootfs(c container, skipper func(dir string, absPath string, fi os.FileInfo) bool) error {
+	if s.s.OS.Shiftfs {
+		return nil
+	}
+
 	dpath := c.Path()
 	rpath := c.RootfsPath()
 
