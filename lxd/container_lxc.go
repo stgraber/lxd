@@ -1155,7 +1155,7 @@ func (c *containerLXC) initLXC(config bool) error {
 	}
 
 	if c.state.OS.Shiftfs && !c.IsPrivileged() {
-		err = lxcSetConfigItem(cc, "lxc.hook.pre-mount", fmt.Sprintf("/bin/mount -t shiftfs %s %s", c.RootfsPath(), c.RootfsPath()))
+		err = lxcSetConfigItem(cc, "lxc.hook.pre-mount", fmt.Sprintf("/bin/mount -t shiftfs -o passthrough %s %s", c.RootfsPath(), c.RootfsPath()))
 		if err != nil {
 			return err
 		}
@@ -2615,7 +2615,7 @@ func (c *containerLXC) OnStart() error {
 
 	// Setup host side shiftfs
 	if c.state.OS.Shiftfs && !c.IsPrivileged() {
-		err := syscall.Mount(c.RootfsPath(), c.RootfsPath(), "shiftfs", 0, "mark")
+		err := syscall.Mount(c.RootfsPath(), c.RootfsPath(), "shiftfs", 0, "mark,passthrough")
 		if err != nil {
 			return err
 		}
