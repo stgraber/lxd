@@ -1154,7 +1154,7 @@ func (c *containerLXC) initLXC(config bool) error {
 		return err
 	}
 
-	if !c.IsPrivileged() {
+	if c.state.OS.Shiftfs && !c.IsPrivileged() {
 		err = lxcSetConfigItem(cc, "lxc.hook.pre-mount", fmt.Sprintf("/bin/mount -t shiftfs %s %s", c.RootfsPath(), c.RootfsPath()))
 		if err != nil {
 			return err
