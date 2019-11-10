@@ -902,3 +902,8 @@ This adds the ability to use LVM stripes on normal volumes and thin pool volumes
 
 ## vm\_boot\_priority
 Adds a `boot.priority` property on nic and disk devices to control the boot order.
+
+## clustering\_eventhub
+This introduces the optional `eventhub` role to allow a number of LXD
+cluster members to handle relaying of events instead of the previous
+broadcast approach.
