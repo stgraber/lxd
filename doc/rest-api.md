@@ -728,7 +728,9 @@ Input (using a remote instance, in push mode sent over the migration websocket v
 
 Input (using a backup):
 
-Raw compressed tarball as provided by a backup download.
+Raw compressed tarball as provided by a backup export (`/1.0/instances/<name>/backups/<backup>/export`).
+The `X-LXD-namel` header can be set to override the target instance name.
+The `X-LXD-pool` header can be set to override the target storage pool.
 
 #### PUT
  * Description: perform bulk operations on instances
@@ -3464,7 +3466,7 @@ Input:
  * Introduced: with API extension `custom_volume_backup`
  * Authentication: trusted
  * Operation: sync
- * Return: dict containing the backup tarball
+ * Return: Raw backup file or standard error
 
 Output:
 
